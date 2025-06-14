@@ -13,6 +13,8 @@ class ClipEditorViewportWidget(QWidget):
     pointSelected = Signal(ClipPoint)
     pointCreated = Signal(ClipPoint)
 
+    hover_distance = 30
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setMouseTracking(True)
@@ -66,7 +68,7 @@ class ClipEditorViewportWidget(QWidget):
                 int(point.value * self._value_scale)
             )
             distance = (event.pos() - point_pos).manhattanLength()
-            if distance < 10:
+            if distance <= self.hover_distance:
                 self._hovered_point = point
                 break
 

@@ -3,8 +3,7 @@ from dataclasses import dataclass
 import math
 
 from PySide6.QtCore import QRect, Qt
-from PySide6.QtGui import QPainter, QPen, QPalette
-from PySide6.QtWidgets import QApplication
+from PySide6.QtGui import QPainter, QPen, QPalette, QColor
 
 from frangiluxlib.components.clip import Clip
 from frangiluxlib.components.clip_point import ClipPoint
@@ -21,10 +20,12 @@ class ClipCurvePainterInfo:
 class ClipCurvePainter:
 
     def paint(self, clip: Clip, painter: QPainter, info: ClipCurvePainterInfo):
-        background_color = info.palette.color(QPalette.ColorRole.Mid).lighter(50)
-        curve_color = info.palette.color(QPalette.ColorRole.Mid)
+        # FIXME create a singleton ?
+        background_color_alternate = QColor(255, 255, 255, 15)
+        curve_color = QColor(128, 128, 128)
         point_color = info.palette.color(QPalette.ColorRole.Highlight)
-        point_color_hovered = info.palette.color(QPalette.ColorRole.Text)
+        point_color_hovered = QColor(255, 255, 255, 50)
+        point_color_selected = QColor(255, 255, 255)
 
         painter.save()
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
@@ -37,7 +38,7 @@ class ClipCurvePainter:
                 continue
 
             background_rect = QRect(int(i * time_scale), 0, int(time_scale), info.rect.height())
-            painter.fillRect(background_rect, background_color)
+            painter.fillRect(background_rect, background_color_alternate)
 
         pen = QPen()
         pen.setWidth(2)
@@ -63,16 +64,21 @@ class ClipCurvePainter:
                     int(clip.points[index + 1].time * time_scale), int(clip.points[index + 1].value * value_scale)
                 )
 
-        pen.setWidth(10)
         for point in clip.points:
-            pen.setColor(
-                point_color_hovered if point == info.hovered_point or point == info.selected_point
-                else point_color
-            )
-            painter.setPen(pen)
-
             x = int(point.time * time_scale)
             y = int(point.value * value_scale)
+
+            pen.setWidth(10)
+            pen.setColor(
+                point_color_selected if point == info.selected_point else point_color
+            )
+            painter.setPen(pen)
             painter.drawPoint(x, y)
+
+            if point == info.hovered_point:
+                pen.setWidth(20)
+                pen.setColor(point_color_hovered)
+                painter.setPen(pen)
+                painter.drawPoint(x, y)
 
         painter.restore()
