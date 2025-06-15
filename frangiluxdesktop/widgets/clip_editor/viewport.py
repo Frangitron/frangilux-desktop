@@ -4,15 +4,19 @@ from PySide6.QtCore import QRect, QPoint, Signal
 from PySide6.QtGui import QPainter, Qt, QPen
 from PySide6.QtWidgets import QWidget
 
+from frangiluxdesktop.palette import Palette
 from frangiluxdesktop.widgets.clip_editor.clip_curve_painter import ClipCurvePainter, ClipCurvePainterInfo
 from frangiluxlib.components.clip import Clip
 from frangiluxlib.components.clip_point import ClipPoint
+from frangiluxlib.components.clip_point_reference_store import ClipPointReferenceStore
+from frangiluxlib.components.clip_reader import ClipReader
 
 
 class ClipEditorViewportWidget(QWidget):
     pointSelected = Signal(ClipPoint)
     pointCreated = Signal(ClipPoint)
     pointMoved = Signal(ClipPoint)
+    scrubbed = Signal(float)
 
     hover_distance = 30
 
@@ -21,13 +25,19 @@ class ClipEditorViewportWidget(QWidget):
         self.setMouseTracking(True)
 
         self._clip: Clip | None = None
+        self._clip_reader = ClipReader()
+
+        self._hovered_point: ClipPoint | None = None
+        self._lock_time = 0.0
+        self._lock_value = 0.0
+        self._modifiers = None
+        self._selected_point: ClipPoint | None = None
         self._time_scale = 1.0
         self._value_scale = 1.0
-        self._hovered_point: ClipPoint | None = None
-        self._selected_point: ClipPoint | None = None
-        self._lock_value = 0.0
-        self._lock_time = 0.0
-        self._modifiers = None
+        self._mouse_pos: QPoint = QPoint(0, 0)
+        self._draw_value = False
+        self._draw_time = False
+
         self._curve_painter = ClipCurvePainter()
 
     def set_clip(self, clip: Clip):
@@ -42,6 +52,8 @@ class ClipEditorViewportWidget(QWidget):
         self._value_scale = event.rect().height()
 
         painter = QPainter(self)
+        # painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
         self._curve_painter.paint(
             clip=self._clip,
             painter=painter,
@@ -52,7 +64,17 @@ class ClipEditorViewportWidget(QWidget):
             )
         )
 
+        pen = QPen()
+        pen.setColor(Palette().curve)
+        painter.setPen(pen)
+        if self._draw_value:
+            painter.drawLine(0, self._mouse_pos.y(), event.rect().width(), self._mouse_pos.y())
+        if self._draw_time:
+            painter.drawLine(self._mouse_pos.x(), 0, self._mouse_pos.x(), event.rect().height())
+
     def mouseMoveEvent(self, event):
+        self._mouse_pos = event.pos()
+
         if self._clip is None or self._clip.time_configuration.duration == 0:
             return
 
@@ -61,11 +83,16 @@ class ClipEditorViewportWidget(QWidget):
             self._move_point(event.pos())
             return
 
+        if event.buttons() & Qt.MouseButton.LeftButton:
+            self.scrubbed.emit(event.pos().x() / self._time_scale)
+            self.repaint()
+            return
+
         self._hovered_point = None
         for point in self._clip.points():
             point_pos = QPoint(
                 int(point.time * self._time_scale),
-                int((1.0 - point.value) * self._value_scale)
+                int((1.0 - self._clip_reader.point_value(point)) * self._value_scale)
             )
             distance = (event.pos() - point_pos).manhattanLength()
             if distance <= self.hover_distance:
@@ -82,11 +109,12 @@ class ClipEditorViewportWidget(QWidget):
             self._clip.remove_point(self._hovered_point)
             self.repaint()
 
+        self.pointSelected.emit(self._hovered_point)
         if self._hovered_point is not None:
             self._selected_point = self._hovered_point
-            self.pointSelected.emit(self._hovered_point)
             self._lock_time = self._hovered_point.time
             self._lock_value = self._hovered_point.value
+            self.repaint()
             return
         else:
             self._selected_point = None
@@ -107,22 +135,40 @@ class ClipEditorViewportWidget(QWidget):
 
         self.repaint()
 
+    def mouseReleaseEvent(self, event):
+        self._draw_value = False
+        self._draw_time = False
+
     def _move_point(self, pos: QPoint):
+        # FIXME use a renamed version of PointReader to update values and check if reference ?
+        self._draw_value = False
+        self._draw_time = False
+
         time = pos.x() / self._time_scale
         time = max(0.0, min(time, self._clip.time_configuration.duration))
 
         value = 1.0 - (pos.y() / self._value_scale)
         value = max(0.0, min(value, 1.0))
 
-        if self._modifiers & Qt.KeyboardModifier.ControlModifier:
+        if self._modifiers & Qt.KeyboardModifier.ControlModifier or (self._selected_point.is_reference and not self._selected_point.is_reference_editable):
+            self._draw_time = True
             self._hovered_point.time = time
             self._hovered_point.value = self._lock_value
+
         elif self._modifiers & Qt.KeyboardModifier.ShiftModifier:
+            self._draw_value = True
             self._hovered_point.time = self._lock_time
             self._hovered_point.value = value
+            if self._selected_point.is_reference and self._selected_point.is_reference_editable:
+                ClipPointReferenceStore().set(self._selected_point, value)
+
         else:
+            self._draw_value = True
+            self._draw_time = True
             self._hovered_point.time = time
             self._hovered_point.value = value
+            if self._selected_point.is_reference and self._selected_point.is_reference_editable:
+                ClipPointReferenceStore().set(self._selected_point, value)
 
         self._clip.sort()
         self.repaint()

@@ -8,6 +8,7 @@ from PySide6.QtGui import QPainter, QPen
 from frangiluxdesktop.palette import Palette
 from frangiluxlib.components.clip import Clip
 from frangiluxlib.components.clip_point import ClipPoint
+from frangiluxlib.components.clip_reader import ClipReader
 
 
 @dataclass
@@ -20,12 +21,14 @@ class ClipCurvePainterInfo:
 
 class ClipCurvePainter:
 
+    def __init__(self):
+        self._clip_reader = ClipReader()
+
     def paint(self, clip: Clip, painter: QPainter, info: ClipCurvePainterInfo):
         points = clip.points()
         palette = Palette()
 
         painter.save()
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
         time_scale = info.rect.width() / clip.time_configuration.duration
         value_scale = info.rect.height()
@@ -41,13 +44,13 @@ class ClipCurvePainter:
             return
 
         pen = QPen()
-        pen.setWidth(2)
+        pen.setWidth(palette.line_width)
         pen.setCapStyle(Qt.PenCapStyle.RoundCap)
         pen.setColor(palette.curve)
         painter.setPen(pen)
         for index, point in enumerate(points):
             x = int(point.time * time_scale)
-            y = int((1.0 - point.value) * value_scale)
+            y = int((1.0 - self._clip_reader.point_value(point)) * value_scale)
 
             if index == len(points) - 1 and point.time < clip.time_configuration.duration:
                 painter.drawLine(x, y, info.rect.width(), y)
@@ -57,28 +60,50 @@ class ClipCurvePainter:
 
             if index < len(points) - 1:
                 x1 = int(points[index + 1].time * time_scale)
-                y1 = int((1.0 - points[index + 1].value) * value_scale)
+                y1 = int((1.0 - self._clip_reader.point_value(points[index + 1])) * value_scale)
                 painter.drawLine(x, y, x1, y1)
 
         if info.draw_points:
             for point in points:
                 x = int(point.time * time_scale)
-                y = int((1.0 - point.value) * value_scale)
+                y = int((1.0 - self._clip_reader.point_value(point)) * value_scale)
 
-                pen.setWidth(10)
-                pen.setColor(
-                    palette.item_selected if point == info.selected_point else palette.primary
-                )
+                if point.is_reference:
+                    pen.setColor(
+                        palette.item_selected if point == info.selected_point else palette.secondary
+                    )
+                    if point.is_reference_editable:
+                        pen.setWidth(palette.point_size_reference)
+                        painter.setPen(pen)
+                        painter.drawPoint(x, y)
+                    else:
+                        pen.setWidth(palette.line_width)
+                        painter.setPen(pen)
+                        painter.drawEllipse(
+                            x - int(palette.point_size_reference / 2),
+                            y - int(palette.point_size_reference / 2),
+                            palette.point_size_reference,
+                            palette.point_size_reference
+                        )
+                else:
+                    pen.setWidth(palette.point_size)
+                    pen.setColor(
+                        palette.item_selected if point == info.selected_point else palette.primary
+                    )
+                    painter.setPen(pen)
+                    painter.drawPoint(x, y)
+
+                pen.setWidth(palette.point_size)
                 painter.setPen(pen)
-                painter.drawPoint(x, y)
-
                 if point == info.hovered_point:
-                    pen.setWidth(20)
+                    pen.setWidth(palette.point_size_hovered)
                     pen.setColor(palette.item_hovered)
                     painter.setPen(pen)
                     painter.drawPoint(x, y)
 
-        pen.setWidth(2)
+        #
+        # Play Head
+        pen.setWidth(palette.line_width)
         pen.setColor(palette.curve)
         painter.setPen(pen)
         x = int(clip.play_position * time_scale)

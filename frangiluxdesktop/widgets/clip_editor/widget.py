@@ -1,39 +1,52 @@
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QWidget, QGridLayout, QSlider, QProgressBar
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import QWidget, QGridLayout, QSlider, QProgressBar, QGroupBox
 
+from frangiluxdesktop.widgets.clip_editor.point_editor import PointEditor
 from frangiluxdesktop.widgets.clip_editor.viewport import ClipEditorViewportWidget
 from frangiluxlib.components.clip import Clip
+from frangiluxlib.components.clip_point import ClipPoint
+from frangiluxlib.components.clip_reader import ClipReader
+from pyside6helpers.spinbox import SpinBox
 
 
-class ClipEditorWidget(QWidget):
+class ClipEditorWidget(QGroupBox):
+    scrubbed = Signal(float)
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setTitle("Clip Editor")
 
         self.clip: Clip | None = None
 
-        self.slider_clip_length = QSlider(Qt.Horizontal)
-        self.slider_clip_length.setRange(0, 6000)
-        self.slider_clip_length.setValue(4300)
-        self.slider_clip_length.valueChanged.connect(self._update_clip)
-
-        self.slider_play_head = QSlider(Qt.Horizontal)
-        self.slider_play_head.setRange(0, 1000)
-        self.slider_play_head.valueChanged.connect(self._update_play_head)
+        self.spinbox_clip_length = SpinBox(
+            name="Clip length",
+            minimum=1,
+            maximum=16,
+            on_value_changed=self._update_clip
+        )
 
         self.progress_value = QProgressBar()
+        self.progress_value.setTextVisible(False)
         self.progress_value.setOrientation(Qt.Vertical)
         self.progress_value.setRange(0, 1000)
         self.progress_value.setValue(500)
 
+        self.point_editor = PointEditor()
+        self.point_editor.ValueChanged.connect(self.repaint)
+
         self.viewport = ClipEditorViewportWidget()
-        self.viewport.pointMoved.connect(self._update_play_head)
+        self.viewport.pointMoved.connect(self._point_moved)
+        self.viewport.scrubbed.connect(self._scrubbed)
+        self.viewport.pointSelected.connect(self.point_editor.set_point)
 
         layout = QGridLayout(self)
-        layout.addWidget(self.slider_clip_length, 0, 0)
-        layout.addWidget(self.viewport, 1, 0)
-        layout.addWidget(self.slider_play_head, 2, 0)
-        layout.addWidget(self.progress_value, 1, 1)
+        layout.addWidget(self.viewport, 0, 0, 3, 1)
+        layout.addWidget(self.progress_value, 0, 1, 3, 1)
+        layout.addWidget(self.spinbox_clip_length, 0, 2)
+        layout.addWidget(self.point_editor, 1, 2)
+        layout.addWidget(QWidget(), 1, 3)
+        layout.setColumnStretch(0, 1)
+        layout.setRowStretch(2, 1)
 
         self._suspend_slider_update = False
 
@@ -41,10 +54,8 @@ class ClipEditorWidget(QWidget):
         if self.clip is None:
             return
 
-        self._update_play_head()
-
         if not self._suspend_slider_update:
-            self.clip.time_configuration.duration = self.slider_clip_length.value() / 1000.0
+            self.clip.time_configuration.duration = self.spinbox_clip_length.value()
 
         self.viewport.set_clip(self.clip)
 
@@ -52,18 +63,25 @@ class ClipEditorWidget(QWidget):
         self._suspend_slider_update = True
 
         self.clip = clip
-        self.slider_clip_length.setValue(int(clip.time_configuration.duration * 1000))
+        self.spinbox_clip_length.setValue(int(clip.time_configuration.duration))
         self._update_clip()
 
         self._suspend_slider_update = False
 
-    def _update_play_head(self):
+    def _point_moved(self, point: ClipPoint):
+        self._update_progress()
+
+    def _scrubbed(self, time: float | None = None):
         if self.clip is None or not self.clip.points():
             return
 
-        time = (self.slider_play_head.value() / 1000.0) * self.clip.time_configuration.duration
-        self.clip.play_position = time
-        value = self.clip.play_value()
-        self.progress_value.setValue(int(value * 1000))
+        if time is not None:
+            self.clip.play_position = time % self.clip.time_configuration.duration
 
-        self.viewport.repaint()
+        self.scrubbed.emit(time)
+
+        self._update_progress()
+
+    def _update_progress(self):
+        value = ClipReader().play_value(self.clip)
+        self.progress_value.setValue(int(value * 1000))
