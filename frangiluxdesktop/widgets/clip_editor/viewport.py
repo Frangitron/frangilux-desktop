@@ -12,6 +12,7 @@ from frangiluxlib.components.clip_point import ClipPoint
 class ClipEditorViewportWidget(QWidget):
     pointSelected = Signal(ClipPoint)
     pointCreated = Signal(ClipPoint)
+    pointMoved = Signal(ClipPoint)
 
     hover_distance = 30
 
@@ -38,7 +39,7 @@ class ClipEditorViewportWidget(QWidget):
             return
 
         self._time_scale = event.rect().width() / self._clip.time_configuration.duration
-        self._value_scale = event.rect().height() / 255.0
+        self._value_scale = event.rect().height()
 
         painter = QPainter(self)
         self._curve_painter.paint(
@@ -47,8 +48,7 @@ class ClipEditorViewportWidget(QWidget):
             info=ClipCurvePainterInfo(
                 rect=event.rect(),
                 hovered_point=self._hovered_point,
-                selected_point=self._selected_point,
-                palette=self.palette()
+                selected_point=self._selected_point
             )
         )
 
@@ -62,10 +62,10 @@ class ClipEditorViewportWidget(QWidget):
             return
 
         self._hovered_point = None
-        for point in self._clip.points:
+        for point in self._clip.points():
             point_pos = QPoint(
                 int(point.time * self._time_scale),
-                int(point.value * self._value_scale)
+                int((1.0 - point.value) * self._value_scale)
             )
             distance = (event.pos() - point_pos).manhattanLength()
             if distance <= self.hover_distance:
@@ -79,7 +79,7 @@ class ClipEditorViewportWidget(QWidget):
             return
 
         if event.modifiers() & Qt.KeyboardModifier.AltModifier and self._hovered_point is not None:
-            self._clip.points.remove(self._hovered_point)
+            self._clip.remove_point(self._hovered_point)
             self.repaint()
 
         if self._hovered_point is not None:
@@ -93,7 +93,7 @@ class ClipEditorViewportWidget(QWidget):
 
         if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
             time = event.pos().x() / self._time_scale
-            value = event.pos().y() / self._value_scale
+            value = 1.0 - (event.pos().y() / self._value_scale)
 
             self._lock_time = time
             self._lock_value = value
@@ -111,8 +111,8 @@ class ClipEditorViewportWidget(QWidget):
         time = pos.x() / self._time_scale
         time = max(0.0, min(time, self._clip.time_configuration.duration))
 
-        value = pos.y() / self._value_scale
-        value = max(0.0, min(value, 255.0))
+        value = 1.0 - (pos.y() / self._value_scale)
+        value = max(0.0, min(value, 1.0))
 
         if self._modifiers & Qt.KeyboardModifier.ControlModifier:
             self._hovered_point.time = time
@@ -126,3 +126,4 @@ class ClipEditorViewportWidget(QWidget):
 
         self._clip.sort()
         self.repaint()
+        self.pointMoved.emit(self._hovered_point)

@@ -2,6 +2,7 @@ import os.path
 
 from PySide6.QtWidgets import QApplication
 
+from frangiluxdesktop.palette import Palette
 from frangiluxlib.components.clip_store import ClipStore
 from pyside6helpers import css
 from pyside6helpers.main_window import MainWindow
@@ -28,7 +29,9 @@ else:
 app = QApplication([])
 app.setApplicationName("Frangilux")
 app.aboutToQuit.connect(clip_store.save)
+
 css.load_onto(app)
+Palette().init()
 
 clip_editor = ClipEditorWidget()
 clip_editor.set_clip(clip_store.clips[0])

@@ -3,6 +3,7 @@ requires = [
   "setuptools",
   "PySide6",
   "pyside6-helpers@git+https://github.com/MrFrangipane/pyside6-helpers@main",
+  "python-helpers@git+https://github.com/MrFrangipane/python-helpers@main"
 ]
 build-backend = "setuptools.build_meta"
 
