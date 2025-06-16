@@ -23,7 +23,7 @@ class Palette(metaclass=SingletonMetaclass):
     def init(self):
         widget = QSlider()
         self.primary = QColor(75, 165, 193)  #widget.palette().color(QPalette.ColorRole.Highlight)
-        self.secondary = QColor(165, 75, 193)  #widget.palette().color(QPalette.ColorRole.HighlightedText)
+        self.secondary = QColor(180, 160, 40)  #widget.palette().color(QPalette.ColorRole.HighlightedText)
 
         self.background_alternate = QColor(255, 255, 255, 15)
         self.curve = QColor(128, 128, 128)

@@ -17,6 +17,7 @@ class ClipCurvePainterInfo:
     hovered_point: ClipPoint | None
     selected_point: ClipPoint | None
     draw_points: bool = True
+    draw_point_labels: bool = True
 
 
 class ClipCurvePainter:
@@ -67,11 +68,14 @@ class ClipCurvePainter:
             for point in points:
                 x = int(point.time * time_scale)
                 y = int((1.0 - self._clip_reader.point_value(point)) * value_scale)
+                label = f"{point.value:.2f}"
+                color = palette.item_selected if point == info.selected_point else palette.primary
 
                 if point.is_reference:
-                    pen.setColor(
-                        palette.item_selected if point == info.selected_point else palette.secondary
-                    )
+                    label = point.reference_name
+                    color = palette.item_selected if point == info.selected_point else palette.secondary
+
+                    pen.setColor(color)
                     if point.is_reference_editable:
                         pen.setWidth(palette.point_size_reference)
                         painter.setPen(pen)
@@ -85,11 +89,10 @@ class ClipCurvePainter:
                             palette.point_size_reference,
                             palette.point_size_reference
                         )
+
                 else:
                     pen.setWidth(palette.point_size)
-                    pen.setColor(
-                        palette.item_selected if point == info.selected_point else palette.primary
-                    )
+                    pen.setColor(color)
                     painter.setPen(pen)
                     painter.drawPoint(x, y)
 
@@ -100,6 +103,22 @@ class ClipCurvePainter:
                     pen.setColor(palette.item_hovered)
                     painter.setPen(pen)
                     painter.drawPoint(x, y)
+
+                if info.draw_point_labels:
+                    pen.setColor(color)
+                    painter.setPen(pen)
+                    if x < info.rect.width() / 2:
+                        painter.drawText(
+                            x + 10, y - 10, 200, 20,
+                            Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft,
+                            label
+                        )
+                    else:
+                        painter.drawText(
+                            x - 210, y - 10, 200, 20,
+                            Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight,
+                            label
+                        )
 
         #
         # Play Head

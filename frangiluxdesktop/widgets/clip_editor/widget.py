@@ -1,7 +1,7 @@
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QWidget, QGridLayout, QSlider, QProgressBar, QGroupBox
 
-from frangiluxdesktop.widgets.clip_editor.point_editor import PointEditor
+from frangiluxdesktop.widgets.clip_editor.point_reference_editor import PointReferenceEditor
 from frangiluxdesktop.widgets.clip_editor.viewport import ClipEditorViewportWidget
 from frangiluxlib.components.clip import Clip
 from frangiluxlib.components.clip_point import ClipPoint
@@ -31,19 +31,19 @@ class ClipEditorWidget(QGroupBox):
         self.progress_value.setRange(0, 1000)
         self.progress_value.setValue(500)
 
-        self.point_editor = PointEditor()
-        self.point_editor.ValueChanged.connect(self.repaint)
+        self.point_reference_editor = PointReferenceEditor()
+        self.point_reference_editor.ValueChanged.connect(self.repaint)
 
         self.viewport = ClipEditorViewportWidget()
         self.viewport.pointMoved.connect(self._point_moved)
         self.viewport.scrubbed.connect(self._scrubbed)
-        self.viewport.pointSelected.connect(self.point_editor.set_point)
+        self.viewport.pointSelected.connect(self.point_reference_editor.set_point)
 
         layout = QGridLayout(self)
         layout.addWidget(self.viewport, 0, 0, 3, 1)
         layout.addWidget(self.progress_value, 0, 1, 3, 1)
         layout.addWidget(self.spinbox_clip_length, 0, 2)
-        layout.addWidget(self.point_editor, 1, 2)
+        layout.addWidget(self.point_reference_editor, 1, 2)
         layout.addWidget(QWidget(), 1, 3)
         layout.setColumnStretch(0, 1)
         layout.setRowStretch(2, 1)
