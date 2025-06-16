@@ -2,6 +2,7 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QWidget, QGridLayout, QProgressBar, QRadioButton
 
 from frangiluxdesktop.widgets.clip_editor.clip_curve_painter import PointLabelFormat
+from frangiluxdesktop.widgets.clip_editor.point_value_editor import PointValueEditor
 from frangiluxlib.components.clip import Clip
 from frangiluxlib.components.clip_point import ClipPoint
 from frangiluxlib.components.clip_reader import ClipReader
@@ -34,6 +35,9 @@ class ClipEditorWidget(QWidget):
         self.progress_value.setRange(0, 1000)
         self.progress_value.setValue(500)
 
+        self.point_value_editor = PointValueEditor()
+        self.point_value_editor.PointChanged.connect(self._repaint_viewport)
+
         self.point_reference_editor = PointReferenceEditor()
         self.point_reference_editor.PointChanged.connect(self._repaint_viewport)
 
@@ -41,6 +45,7 @@ class ClipEditorWidget(QWidget):
         self.viewport.pointMoved.connect(self._point_moved)
         self.viewport.scrubbed.connect(self._scrubbed)
         self.viewport.pointSelected.connect(self.point_reference_editor.set_point)
+        self.viewport.pointSelected.connect(self.point_value_editor.set_point)
 
         self.radio_label_format_float = QRadioButton("Float")
         self.radio_label_format_dmx = QRadioButton("DMX")
@@ -55,15 +60,18 @@ class ClipEditorWidget(QWidget):
         )
 
         layout = QGridLayout(self)
-        layout.addWidget(self.viewport, 0, 0, 4, 1)
-        layout.addWidget(self.progress_value, 0, 1, 4, 1)
-        layout.addWidget(self.spinbox_clip_length, 0, 2)
+        layout.addWidget(self.viewport, 0, 0, 5, 1)
+        layout.addWidget(self.progress_value, 0, 1, 5, 1)
+        layout.addWidget(self.spinbox_clip_length, 0, 2, 1, 2)
         layout.addWidget(label_format_group, 1, 2)
-        layout.addWidget(self.point_reference_editor, 2, 2)
-        layout.addWidget(QWidget(), 3, 2)
+        layout.addWidget(self.point_value_editor, 1, 3)
+        layout.addWidget(self.point_reference_editor, 3, 2, 1, 2)
+        layout.addWidget(QWidget(), 4, 2)
 
-        layout.setColumnStretch(0, 1)
-        layout.setRowStretch(3, 1)
+        layout.setColumnStretch(0, 10)
+        layout.setColumnStretch(1, 1)
+        layout.setColumnStretch(2, 1)
+        layout.setRowStretch(4, 1)
 
         self._suspend_slider_update = False
 
@@ -87,6 +95,7 @@ class ClipEditorWidget(QWidget):
 
     def _point_moved(self, point: ClipPoint):
         self._update_progress()
+        self.point_value_editor.refresh()
 
     def _scrubbed(self, time: float | None = None):
         if self.clip is None or not self.clip.points():
