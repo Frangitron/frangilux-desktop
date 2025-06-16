@@ -10,7 +10,7 @@ from pythonhelpers.reactive import Reactive, Observer
 
 
 class PointReferenceEditor(QGroupBox):
-    ValueChanged = Signal()
+    PointChanged = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -33,11 +33,16 @@ class PointReferenceEditor(QGroupBox):
 
         self.checkbox_reference_edit = QCheckBox("Allow reference edition")
         self.checkbox_reference_edit.stateChanged.connect(self._update_point)
+        self.checkbox_reference_edit.setEnabled(False)
 
         self.lineedit_new_reference_name = QLineEdit()
+        self.lineedit_new_reference_name.setPlaceholderText("New reference name")
+        self.lineedit_new_reference_name.returnPressed.connect(self._new_reference)
+        self.lineedit_new_reference_name.textChanged.connect(lambda text: self.button_new_reference.setEnabled(text != ""))
 
         self.button_new_reference = QPushButton("Make reference")
         self.button_new_reference.clicked.connect(self._new_reference)
+        self.button_new_reference.setEnabled(False)
 
         layout = QGridLayout(self)
         layout.addWidget(self.combobox_reference, 0, 0)
@@ -58,10 +63,13 @@ class PointReferenceEditor(QGroupBox):
 
         self._suspend_update = True
         self.checkbox_reference_edit.setChecked(self._point.is_reference_editable)
+        self.button_free.setEnabled(self._point.is_reference)
+        self.checkbox_reference_edit.setEnabled(self._point.is_reference)
         if self._point.is_reference:
             self.combobox_reference.setCurrentIndex(self.combobox_reference.findText(self._point.reference_name))
         else:
             self.combobox_reference.setCurrentIndex(-1)
+
         self._suspend_update = False
 
     def _update_point(self):
@@ -69,6 +77,9 @@ class PointReferenceEditor(QGroupBox):
             return
 
         self._point.is_reference = self.combobox_reference.currentIndex() >= 0
+        self.button_free.setEnabled(self._point.is_reference)
+        self.checkbox_reference_edit.setEnabled(self._point.is_reference)
+
         text =  self.combobox_reference.currentText()
         self._point.reference_name = text if text else None
 
@@ -77,7 +88,7 @@ class PointReferenceEditor(QGroupBox):
 
         self._point.is_reference_editable = self.checkbox_reference_edit.isChecked()
 
-        self.ValueChanged.emit()
+        self.PointChanged.emit()
 
     def _new_reference(self):
         if self._point is None:
@@ -94,9 +105,11 @@ class PointReferenceEditor(QGroupBox):
         self.set_point(self._point)  # FIXME meh
 
         self.lineedit_new_reference_name.setText("")
+        self.PointChanged.emit()
 
     def _free(self):
         if self._point is None:
             return
 
         self.combobox_reference.setCurrentIndex(-1)  # Will trigger point update
+        self.PointChanged.emit()

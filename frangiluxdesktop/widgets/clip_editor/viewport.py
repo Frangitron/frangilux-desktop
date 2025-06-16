@@ -1,15 +1,18 @@
-import math
-
-from PySide6.QtCore import QRect, QPoint, Signal
+from PySide6.QtCore import QPoint, Signal
 from PySide6.QtGui import QPainter, Qt, QPen
 from PySide6.QtWidgets import QWidget
 
-from frangiluxdesktop.palette import Palette
-from frangiluxdesktop.widgets.clip_editor.clip_curve_painter import ClipCurvePainter, ClipCurvePainterInfo
 from frangiluxlib.components.clip import Clip
 from frangiluxlib.components.clip_point import ClipPoint
 from frangiluxlib.components.clip_point_reference_store import ClipPointReferenceStore
 from frangiluxlib.components.clip_reader import ClipReader
+
+from frangiluxdesktop.palette import Palette
+from frangiluxdesktop.widgets.clip_editor.clip_curve_painter import (
+    ClipCurvePainter,
+    ClipCurvePainterInfo,
+    PointLabelFormat
+)
 
 
 class ClipEditorViewportWidget(QWidget):
@@ -116,7 +119,9 @@ class ClipEditorViewportWidget(QWidget):
             self._lock_value = self._hovered_point.value
             self.repaint()
             return
-        else:
+
+        elif self._selected_point is not None:
+            self._selected_point.is_reference_editable = False
             self._selected_point = None
 
         if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
@@ -173,3 +178,10 @@ class ClipEditorViewportWidget(QWidget):
         self._clip.sort()
         self.repaint()
         self.pointMoved.emit(self._hovered_point)
+
+    def set_point_label_format(self, format_: PointLabelFormat):
+        self._curve_painter.options.point_label_format = format_
+        self.repaint()
+
+    def point_label_format(self) -> PointLabelFormat:
+        return self._curve_painter.options.point_label_format
