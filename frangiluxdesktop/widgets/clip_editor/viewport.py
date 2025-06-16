@@ -2,10 +2,10 @@ from PySide6.QtCore import QPoint, Signal
 from PySide6.QtGui import QPainter, Qt, QPen
 from PySide6.QtWidgets import QWidget
 
-from frangiluxlib.components.clip import Clip
-from frangiluxlib.components.clip_point import ClipPoint
-from frangiluxlib.components.clip_point_reference_store import ClipPointReferenceStore
-from frangiluxlib.components.clip_reader import ClipReader
+from frangiluxlib.components.clip.clip import Clip
+from frangiluxlib.components.clip.reader import ClipReader
+from frangiluxlib.components.clip_point.clip_point import ClipPoint
+from frangiluxlib.components.clip_point.reference_store import ClipPointReferenceStore
 
 from frangiluxdesktop.palette import Palette
 from frangiluxdesktop.widgets.clip_editor.clip_curve_painter import (

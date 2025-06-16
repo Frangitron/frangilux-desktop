@@ -1,7 +1,8 @@
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QGroupBox, QVBoxLayout
 
-from frangiluxlib.components.clip_point import ClipPoint
+from frangiluxlib.components.clip_point.clip_point import ClipPoint
+from frangiluxlib.components.clip_point.reference_store import ClipPointReferenceStore
 from pyside6helpers.spinbox import SpinBox, DoubleSpinBox
 
 
@@ -74,5 +75,11 @@ class PointValueEditor(QGroupBox):
         self._update_point()
 
     def _update_point(self):
+        if self._point is None:
+            return
+
         self._point.value = self.spinbox_dmx.value() / 255.0
+        if self._point.is_reference and self._point.is_reference_editable:
+            ClipPointReferenceStore().set(self._point, self._point.value)
+
         self.PointChanged.emit()

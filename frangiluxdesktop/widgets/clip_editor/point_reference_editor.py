@@ -2,8 +2,8 @@ from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QGroupBox, QCheckBox, QGridLayout, QLineEdit, QComboBox, QPushButton
 
 from frangiluxlib.reactive_channels import ReactiveChannels
-from frangiluxlib.components.clip_point import ClipPoint
-from frangiluxlib.components.clip_point_reference_store import ClipPointReferenceStore
+from frangiluxlib.components.clip_point.clip_point import ClipPoint
+from frangiluxlib.components.clip_point.reference_store import ClipPointReferenceStore
 
 from pyside6helpers import combo
 from pythonhelpers.reactive import Reactive, Observer

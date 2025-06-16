@@ -1,15 +1,15 @@
-from dataclasses import dataclass
-
 import math
+from dataclasses import dataclass
 from enum import StrEnum, auto
 
 from PySide6.QtCore import QRect, Qt
 from PySide6.QtGui import QPainter, QPen
 
 from frangiluxdesktop.palette import Palette
-from frangiluxlib.components.clip import Clip
-from frangiluxlib.components.clip_point import ClipPoint
-from frangiluxlib.components.clip_reader import ClipReader
+
+from frangiluxlib.components.clip.clip import Clip
+from frangiluxlib.components.clip.reader import ClipReader
+from frangiluxlib.components.clip_point.clip_point import ClipPoint
 
 
 @dataclass

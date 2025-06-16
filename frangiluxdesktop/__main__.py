@@ -2,16 +2,16 @@ import os.path
 
 from PySide6.QtWidgets import QApplication
 
-from frangiluxdesktop.palette import Palette
-from frangiluxlib.components.clip_point_reference_store import ClipPointReferenceStore
-from frangiluxlib.components.clip_store import ClipStore
+from frangiluxlib.components.clip.clip import Clip
+from frangiluxlib.components.clip_point.reference_store import ClipPointReferenceStore
+from frangiluxlib.components.clip.store import ClipStore
+from frangiluxlib.components.time_configuration import TimeConfiguration, TimeConfigurationMode
+
 from pyside6helpers import css
 from pyside6helpers.main_window import MainWindow
 
-from frangiluxdesktop.widgets.clip_editor.widget import ClipEditorWidget
-from frangiluxlib.components.clip import Clip
-from frangiluxlib.components.time_configuration import TimeConfiguration, TimeConfigurationMode
-
+from frangiluxdesktop.palette import Palette
+from frangiluxdesktop.widgets import ClipEditorWidget, LayerEditorWidget
 
 clip_store = ClipStore()
 if not os.path.exists("clips.json"):
@@ -37,8 +37,12 @@ Palette().init()
 
 reference_store = ClipPointReferenceStore()
 reference_store.load()
+
 clip_editor = ClipEditorWidget()
 clip_editor.set_clip(clip_store.clips[0])
+
+layer_editor = LayerEditorWidget()
+layer_editor.show()
 
 main_window = MainWindow(
     settings_tuple=("Frangitron", "Frangilux")

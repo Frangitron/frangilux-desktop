@@ -3,9 +3,10 @@ from PySide6.QtWidgets import QWidget, QGridLayout, QProgressBar, QRadioButton
 
 from frangiluxdesktop.widgets.clip_editor.clip_curve_painter import PointLabelFormat
 from frangiluxdesktop.widgets.clip_editor.point_value_editor import PointValueEditor
-from frangiluxlib.components.clip import Clip
-from frangiluxlib.components.clip_point import ClipPoint
-from frangiluxlib.components.clip_reader import ClipReader
+
+from frangiluxlib.components.clip.clip import Clip
+from frangiluxlib.components.clip.reader import ClipReader
+from frangiluxlib.components.clip_point.clip_point import ClipPoint
 
 from pyside6helpers.spinbox import SpinBox
 from pyside6helpers.group import make_group
@@ -69,8 +70,8 @@ class ClipEditorWidget(QWidget):
         layout.addWidget(QWidget(), 4, 2)
 
         layout.setColumnStretch(0, 10)
-        layout.setColumnStretch(1, 1)
         layout.setColumnStretch(2, 1)
+        layout.setColumnStretch(3, 1)
         layout.setRowStretch(4, 1)
 
         self._suspend_slider_update = False

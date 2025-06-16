@@ -1,0 +1,2 @@
+from frangiluxdesktop.widgets.clip_editor.widget import ClipEditorWidget
+from frangiluxdesktop.widgets.layer_editor.widget import LayerEditorWidget
